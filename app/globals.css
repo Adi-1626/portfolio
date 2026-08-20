@@ -1,26 +1,527 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS — Motion
+═══════════════════════════════════════════════════ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Durations */
+  --dur-micro: 150ms;
+  --dur-fast: 250ms;
+  --dur-base: 400ms;
+  --dur-slow: 700ms;
+  --dur-reveal: 900ms;
+
+  /* Easings */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Colors */
+  --color-bg: #080808;
+  --color-bg-subtle: #0d0d0d;
+  --color-surface: #111111;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.16);
+
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: rgba(240, 240, 240, 0.55);
+  --color-text-muted: rgba(240, 240, 240, 0.3);
+
+  --color-accent: #2dd4bf;          /* teal */
+  --color-accent-dim: rgba(45, 212, 191, 0.12);
+  --color-accent-border: rgba(45, 212, 191, 0.25);
+
+  --color-green: #4ade80;           /* available dot */
+  --color-blue: #60a5fa;            /* open dot */
+
+  /* Spacing */
+  --section-pad-y: clamp(4rem, 10vw, 9rem);
+  --container-max: 1200px;
+  --container-pad: clamp(1.25rem, 5vw, 3rem);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ═══════════════════════════════════════════════════
+   BASE RESET & GLOBALS
+═══════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* Smooth scrolling is owned by Lenis (see SmoothScroll.tsx) — leaving this
+     on would fight Lenis's own per-frame scroll updates. Native behavior
+     ("auto") is also the correct fallback: it's what applies whenever Lenis
+     defers to prefers-reduced-motion, where scrolling should jump instantly. */
+  scroll-behavior: auto;
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
+
+/* CSS grid removed — replaced by GravityGrid canvas component */
+/* body::before kept only as a no-op to avoid layout shifts */
+
+/* Noise overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY — Fluid scale
+═══════════════════════════════════════════════════ */
+h1, h2, h3, h4 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.text-hero {
+  font-size: clamp(2.4rem, 6vw, 5.5rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.text-section-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.text-section-heading {
+  font-size: clamp(1.6rem, 3.5vw, 2.75rem);
+  font-weight: 700;
+}
+
+.accent-text {
+  background: linear-gradient(135deg, var(--color-accent), #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT UTILITIES
+═══════════════════════════════════════════════════ */
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding-left: var(--container-pad);
+  padding-right: var(--container-pad);
+}
+
+.section {
+  position: relative;
+  z-index: 1;
+  padding-top: var(--section-pad-y);
+  padding-bottom: var(--section-pad-y);
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════════════ */
+
+/* Hairline divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0;
+}
+
+/* Status dot badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Status dots with layered glow — reads as a real light source ── */
+.status-dot--open {
+  background: #7bc2ff;
+  box-shadow:
+    0 0 0 1.5px rgba(96, 165, 250, 0.35),   /* tight halo ring */
+    0 0 7px 3px  rgba(96, 165, 250, 0.55),  /* bright bloom */
+    0 0 20px 8px rgba(96, 165, 250, 0.22);  /* wide soft glow */
+  animation: pulse-dot-open 2.5s ease-in-out infinite;
+}
+
+.status-dot--available {
+  background: #72f0a0;
+  box-shadow:
+    0 0 0 1.5px rgba(74, 222, 128, 0.35),
+    0 0 7px 3px  rgba(74, 222, 128, 0.55),
+    0 0 20px 8px rgba(74, 222, 128, 0.22);
+  animation: pulse-dot-green 2.5s ease-in-out infinite;
+}
+
+.status-dot--unavailable { background: #6b7280; }
+
+/* Pulses modulate glow size AND core brightness — not just opacity */
+@keyframes pulse-dot-open {
+  0%, 100% {
+    background: #90cfff;
+    box-shadow:
+      0 0 0 1.5px rgba(96, 165, 250, 0.45),
+      0 0 9px 4px  rgba(96, 165, 250, 0.65),
+      0 0 26px 10px rgba(96, 165, 250, 0.28);
+  }
+  50% {
+    background: #4a90d9;
+    box-shadow:
+      0 0 0 0.5px rgba(96, 165, 250, 0.15),
+      0 0 4px 1px  rgba(96, 165, 250, 0.25),
+      0 0 10px 4px rgba(96, 165, 250, 0.10);
+  }
+}
+
+@keyframes pulse-dot-green {
+  0%, 100% {
+    background: #88f4b0;
+    box-shadow:
+      0 0 0 1.5px rgba(74, 222, 128, 0.45),
+      0 0 9px 4px  rgba(74, 222, 128, 0.65),
+      0 0 26px 10px rgba(74, 222, 128, 0.28);
+  }
+  50% {
+    background: #35c169;
+    box-shadow:
+      0 0 0 0.5px rgba(74, 222, 128, 0.15),
+      0 0 4px 1px  rgba(74, 222, 128, 0.25),
+      0 0 10px 4px rgba(74, 222, 128, 0.10);
+  }
+}
+
+/* Skill tag */
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  background: rgba(255,255,255,0.02);
+  transition: border-color var(--dur-fast) var(--ease-out-expo),
+              color var(--dur-fast) var(--ease-out-expo),
+              background var(--dur-fast) var(--ease-out-expo);
+}
+
+.skill-tag:hover {
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  background: var(--color-accent);
+  color: #080808;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--dur-fast) var(--ease-out-expo),
+              box-shadow var(--dur-fast) var(--ease-out-expo),
+              filter var(--dur-fast) var(--ease-out-expo);
+  position: relative;
+  overflow: hidden;
+  /* Tap highlight for mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Ensure minimum touch target */
+  min-height: 44px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(45, 212, 191, 0.35);
+  filter: brightness(1.08);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.6rem;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-out-expo),
+              background var(--dur-fast) var(--ease-out-expo),
+              transform var(--dur-fast) var(--ease-out-expo);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+}
+
+.btn-outline:hover {
+  border-color: var(--color-border-hover);
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-1px);
+}
+
+/* Icon link */
+.icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;   /* ≥44px tap target */
+  height: 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-out-expo),
+              color var(--dur-fast) var(--ease-out-expo),
+              transform var(--dur-fast) var(--ease-out-expo);
+}
+
+.icon-link:hover {
+  border-color: var(--color-accent-border);
+  color: var(--color-accent);
+  transform: translateY(-2px);
+}
+
+/* Timeline vertical line */
+.timeline-line {
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -4.5px;
+  top: 0.5rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-border);
+  border: 1px solid var(--color-bg);
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE — Responsive overrides
+═══════════════════════════════════════════════════ */
+
+/* 375px — smallest phones */
+@media (max-width: 479px) {
+  /* Status badge: drop the live-clock segment — not enough room next to the
+     status label without wrapping the pill onto two lines. */
+  .badge-clock {
+    display: none !important;
+  }
+
+  /* Hero CTA buttons stack vertically, full width; icon links stay centered below */
+  .hero-ctas {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-ctas .btn-primary,
+  .hero-ctas .btn-outline {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* The Magnetic wrapper is display:inline-block with no explicit width —
+     it must also go full-width or its 100%-wide button child has nothing
+     concrete to resolve against. */
+  .hero-ctas .magnetic-cta {
+    width: 100%;
+  }
+
+  .hero-ctas .icon-link {
+    margin-top: 0.25rem;
+  }
+
+  /* Projects: remove 3D tilt on mobile (touch has no hover state) */
+  .projects-explorer [style*="perspective"] {
+    transform: none !important;
+  }
+
+  /* Experience: compact tab buttons */
+  .exp-tab-content {
+    padding: 1.25rem !important;
+  }
+}
+
+/* 768px — tablet breakpoint */
+@media (max-width: 768px) {
+  /* Experience: horizontal scrolling tab list on mobile */
+  .exp-tabs {
+    display: flex;
+    flex-direction: row !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0 !important;
+    border-bottom: 1px solid var(--color-border);
+    /* Fade the trailing edge so a scrollable strip reads as scrollable */
+    mask-image: linear-gradient(to right, black 0%, black 92%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 92%, transparent 100%);
+  }
+
+  .exp-tabs::-webkit-scrollbar { display: none; }
+
+  .exp-tab-btn {
+    flex-shrink: 0;
+    border-left: none !important;
+    border-bottom: 2px solid transparent !important;
+    border-right: 1px solid var(--color-border) !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .exp-tab-btn[aria-selected="true"] {
+    border-bottom-color: var(--color-accent) !important;
+  }
+
+  /* Projects sidebar: becomes horizontal scrolling tab strip.
+     overflow-x must be !important — the element also carries an inline
+     `overflow: hidden` (for the desktop rounded-corner clip), and inline
+     styles beat non-important stylesheet rules regardless of selector. */
+  .projects-sidebar {
+    display: flex;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: rgba(255,255,255,0.015);
+    /* Fade the trailing edge so a scrollable strip reads as scrollable */
+    mask-image: linear-gradient(to right, black 0%, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 90%, transparent 100%);
+  }
+
+  .projects-sidebar::-webkit-scrollbar { display: none; }
+
+  .projects-sidebar-header,
+  .projects-sidebar-footer { display: none !important; }
+
+  .projects-sidebar-btn {
+    flex-shrink: 0;
+    border-left: none !important;
+    border-bottom: none !important;
+    border-right: 1px solid var(--color-border) !important;
+    padding: 0.75rem 1rem !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    font-size: 0.8rem;
+    min-height: 44px;
+  }
+
+  /* Reduce section padding on tablet */
+  :root { --section-pad-y: clamp(3rem, 8vw, 6rem); }
+
+  /* Contact card padding */
+  .contact-card {
+    padding: 2.5rem 2rem !important;
+  }
+
+  /* Nav: ensure hamburger tap target */
+  .nav-hamburger {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Skills marquee: faster on mobile so it's clearly moving, not stuck */
+@media (max-width: 768px) {
+  .marquee-row { animation-duration: 12s !important; }
+}
+
+/* Smallest phones: tighter contact card padding (overrides the 768px rule above) */
+@media (max-width: 479px) {
+  .contact-card {
+    padding: 2rem 1.25rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   REDUCED MOTION
+═══════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html { scroll-behavior: auto; }
+}
+
+/* ═══════════════════════════════════════════════════
+   FOCUS & SELECTION
+═══════════════════════════════════════════════════ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.25);
+  color: var(--color-text-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
