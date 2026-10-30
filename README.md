@@ -1,5 +1,7 @@
 # Aditya Nitin Gawali — Portfolio
 
+![Portfolio screenshot](docs/screenshots/Portfolio.jpg)
+
 Personal portfolio site for Aditya Nitin Gawali (AI/ML & Backend Engineer), built with Next.js. All content — bio, experience, projects, skills, contact links — is driven from a single typed data source, so updating the resume never means touching layout code.
 
 Live sections: Hero (interactive 3D visual), About, Experience (tabbed case studies with animated architecture diagrams), Projects (an explorer with sandboxed, interactive demos of each project), Skills (auto-scrolling marquees), Contact.
